@@ -1,8 +1,12 @@
 import unittest
+from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
 from app.actions import DEFAULT_ACTIONS
 from app.main import api_health, app
+
+
+ROOT = Path(__file__).resolve().parent.parent
 
 
 class ReleaseContractTest(unittest.TestCase):
@@ -35,6 +39,17 @@ class HealthContractTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             set(response), {"app", "version", "base_url", "model", "llm"}
         )
+
+
+class FrontendSecurityContractTest(unittest.TestCase):
+    def test_markdown_output_is_sanitized(self):
+        html = (ROOT / "web" / "index.html").read_text(encoding="utf-8")
+        javascript = (ROOT / "web" / "app.js").read_text(encoding="utf-8")
+
+        self.assertIn("dompurify@3.4.13", html)
+        self.assertIn("marked@18.0.9", html)
+        self.assertIn("DOMPurify.sanitize(marked.parse(text))", javascript)
+        self.assertNotRegex(javascript, r"innerHTML\s*=\s*marked\.parse")
 
 
 if __name__ == "__main__":

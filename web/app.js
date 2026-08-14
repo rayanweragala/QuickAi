@@ -94,6 +94,14 @@
     }
   }
 
+  function renderMarkdown(text) {
+    if (!window.marked || !window.DOMPurify) {
+      el.output.textContent = text;
+      return;
+    }
+    el.output.innerHTML = DOMPurify.sanitize(marked.parse(text));
+  }
+
   const setTheme = (theme) => {
     document.documentElement.dataset.theme = theme;
   };
@@ -353,7 +361,7 @@
           } else if (event.type === "delta") {
             acc += event.text;
             caret.remove();
-            el.output.textContent = acc;
+            renderMarkdown(acc);
             el.output.appendChild(caret);
             el.output.scrollTop = el.output.scrollHeight;
           } else if (event.type === "error") {
@@ -386,7 +394,7 @@
 
     if (errored) return;
 
-    el.output.textContent = acc;
+    renderMarkdown(acc);
     finishOutput(acc, false);
     state.turns.push({ role: "user", content: promptSent || text });
     state.turns.push({ role: "assistant", content: acc });
