@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
+<title>QuickAI</title>
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="mark" aria-hidden="true">Q</span>
+    <span class="name">QuickAI</span>
+  </div>
+
+  <button id="statusBtn" class="status" type="button" title="LLM status — click to recheck">
+    <span class="dot" id="statusDot"></span>
+    <span id="statusText" aria-live="polite">checking…</span>
+  </button>
+
+  <div class="spacer"></div>
+
+  <label class="modelWrap" title="Model">
+    <select id="modelSelect" aria-label="Model"></select>
+  </label>
+  <button id="refreshModels" class="icon" type="button" title="Reload model list" aria-label="Reload model list">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.34 5.66M20 4v7h-7"/></svg>
+  </button>
+  <button id="themeBtn" class="icon" type="button" title="Toggle theme" aria-label="Toggle theme">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9c0-.46-.03-.91-.1-1.35A7 7 0 0 1 12 3Z"/></svg>
+  </button>
+  <button id="settingsBtn" class="icon" type="button" title="Settings" aria-label="Open settings">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h10M18 17h2M14 4v6M14 14v6"/></svg>
+  </button>
+</header>
+
+<nav class="actions" aria-label="Actions">
+  <div class="actionFavorites" id="actionBar"></div>
+  <button id="actionMenuBtn" class="allActions" type="button"
+          aria-expanded="false" aria-controls="actionMenu">
+    All actions <span id="actionCount"></span>
+  </button>
+  <div class="actionMenu" id="actionMenu" role="dialog" aria-label="Choose an action" hidden>
+    <label class="actionSearch">
+      <span class="srOnly">Search actions</span>
+      <input id="actionSearch" type="search" autocomplete="off" placeholder="Search actions">
+    </label>
+    <div id="actionMenuList" class="actionMenuList"></div>
+  </div>
+</nav>
+
+<div class="stageTabs" role="tablist" aria-label="Workspace panels">
+  <button id="inputStageBtn" class="stageTab is-on" type="button" role="tab"
+          aria-selected="true" aria-controls="inputPane">Input</button>
+  <button id="outputStageBtn" class="stageTab" type="button" role="tab"
+          aria-selected="false" aria-controls="outputPane">Result</button>
+</div>
+
+<main class="panes" id="panes" data-mobile-stage="input">
+  <section class="pane" id="inputPane" role="tabpanel" aria-labelledby="inputStageBtn">
+    <div class="paneHead">
+      <h2>Input</h2>
+      <span class="meta" id="inputMeta">0 chars</span>
+      <div class="paneTools">
+        <button id="pasteBtn" class="ghost" type="button" title="Paste from clipboard">Paste</button>
+        <button id="clearBtn" class="ghost" type="button" title="Clear (Ctrl+Shift+X)">Clear</button>
+      </div>
+    </div>
+    <textarea id="input" spellcheck="false" placeholder="Paste or type text…"></textarea>
+    <div class="editorHint">
+      <span id="currentActionText">Fix grammar</span>
+      <span>Ctrl+Enter to run · Alt+1…9 for quick actions</span>
+    </div>
+  </section>
+
+  <section class="pane" id="outputPane" role="tabpanel" aria-labelledby="outputStageBtn">
+    <div class="paneHead">
+      <h2>Result</h2>
+      <span class="meta" id="outputMeta"></span>
+      <div class="paneTools">
+        <button id="stopBtn" class="ghost danger" type="button" hidden>Stop</button>
+        <button id="againBtn" class="ghost" type="button" title="Run the same action again" hidden>Again</button>
+        <button id="chainBtn" class="ghost" type="button" title="Move result into the input box" hidden>Use as input</button>
+        <button id="copyBtn" class="ghost primary" type="button" title="Copy result (Ctrl+Shift+C)" hidden>Copy</button>
+      </div>
+    </div>
+    <div id="output" class="output" aria-live="polite"></div>
+    <form id="followForm" class="followRow" hidden>
+      <input id="followInput" type="text" autocomplete="off"
+             placeholder="Follow-up — e.g. “shorter”, “less formal”, “now in Sinhala”">
+      <button type="submit" class="ghost">Send</button>
+    </form>
+  </section>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<!-- ─────────────────────────── settings ─────────────────────────── -->
+<div class="modalBack" id="settings" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <div class="modalHead">
+      <h2 id="settingsTitle">Settings</h2>
+      <div class="tabs" role="tablist" aria-label="Settings sections">
+        <button id="connTab" class="tab is-on" data-tab="conn" type="button" role="tab"
+                aria-selected="true" aria-controls="connPane">Connection</button>
+        <button id="genTab" class="tab" data-tab="gen" type="button" role="tab"
+                aria-selected="false" aria-controls="genPane">Generation</button>
+        <button id="actsTab" class="tab" data-tab="acts" type="button" role="tab"
+                aria-selected="false" aria-controls="actsPane">Actions</button>
+      </div>
+      <button id="closeSettings" class="icon" type="button" title="Close" aria-label="Close settings">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+
+    <div class="modalBody">
+      <!-- Connection -->
+      <section class="tabPane is-on" id="connPane" data-pane="conn" role="tabpanel" aria-labelledby="connTab">
+        <label class="field">
+          <span>LLM API URL</span>
+          <input id="cfgBaseUrl" type="text" placeholder="http://127.0.0.1:8000" spellcheck="false">
+          <small>Any OpenAI-compatible LLM API. No trailing slash.</small>
+        </label>
+        <label class="field">
+          <span>API key <em>(optional)</em></span>
+          <input id="cfgApiKey" type="password" placeholder="leave blank if your LLM API needs none" autocomplete="off">
+          <span class="keyMeta">
+            <small id="keyHint"></small>
+            <button id="removeKey" class="textButton danger" type="button" hidden>Remove saved key</button>
+          </span>
+        </label>
+        <div class="row">
+          <label class="field">
+            <span>Models path</span>
+            <input id="cfgModelsPath" type="text" spellcheck="false">
+          </label>
+          <label class="field">
+            <span>Chat path</span>
+            <input id="cfgChatPath" type="text" spellcheck="false">
+          </label>
+        </div>
+        <label class="field">
+          <span>Extra request body <em>(JSON)</em></span>
+          <textarea id="cfgExtraBody" rows="3" spellcheck="false" placeholder='{"custom_option": true}'></textarea>
+          <small>Merged into every request. Use only for fields documented by your LLM API.</small>
+        </label>
+      </section>
+
+      <!-- Generation -->
+      <section class="tabPane" id="genPane" data-pane="gen" role="tabpanel" aria-labelledby="genTab" hidden>
+        <label class="field">
+          <span>Temperature <b id="tempVal">0.3</b></span>
+          <input id="cfgTemp" type="range" min="0" max="1.5" step="0.05">
+          <small>Per-action values override this. 0 = deterministic, good for grammar fixes.</small>
+        </label>
+        <div class="row">
+          <label class="field">
+            <span>Max tokens <em>(blank = LLM default)</em></span>
+            <input id="cfgMaxTokens" type="number" min="1" step="1" placeholder="">
+          </label>
+          <label class="field">
+            <span>Request timeout (s)</span>
+            <input id="cfgTimeout" type="number" min="5" step="5">
+          </label>
+        </div>
+        <label class="check">
+          <input id="cfgAutoCopy" type="checkbox">
+          <span>Copy the result to my clipboard automatically when it finishes</span>
+        </label>
+        <label class="field">
+          <span>Editor font size <b id="fontVal">15</b>px</span>
+          <input id="cfgFont" type="range" min="12" max="22" step="1">
+        </label>
+      </section>
+
+      <!-- Actions -->
+      <section class="tabPane" id="actsPane" data-pane="acts" role="tabpanel" aria-labelledby="actsTab" hidden>
+        <div class="actEditor">
+          <div class="actList" id="actList"></div>
+          <div class="actForm" id="actForm">
+            <div class="row">
+              <label class="field grow">
+                <span>Label</span>
+                <input id="actLabel" type="text">
+              </label>
+              <label class="field narrow">
+                <span>Marker</span>
+                <input id="actIcon" type="text" maxlength="2" inputmode="text" placeholder="FG">
+              </label>
+              <label class="field narrow">
+                <span>Group</span>
+                <input id="actGroup" type="text">
+              </label>
+            </div>
+            <label class="field">
+              <span>System prompt</span>
+              <textarea id="actSystem" rows="6" spellcheck="false"></textarea>
+            </label>
+            <label class="field">
+              <span>User template</span>
+              <textarea id="actTemplate" rows="3" spellcheck="false"></textarea>
+              <small><code>{input}</code> is replaced with your text. Omit it and your text is appended.</small>
+            </label>
+            <div class="row">
+              <label class="field">
+                <span>Temperature <em>(blank = global)</em></span>
+                <input id="actTemp" type="number" min="0" max="2" step="0.05">
+              </label>
+              <div class="field actBtns">
+                <span>&nbsp;</span>
+                <div>
+                  <button id="actDelete" class="ghost danger" type="button">Delete</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="actFoot">
+          <button id="actNew" class="ghost" type="button">+ New action</button>
+          <button id="actReset" class="ghost" type="button">Restore built-ins</button>
+        </div>
+      </section>
+    </div>
+
+    <div class="modalFoot">
+      <span class="meta" id="cfgPathNote"></span>
+      <div class="spacer"></div>
+      <button id="cancelSettings" class="ghost" type="button">Cancel</button>
+      <button id="saveSettings" class="ghost primary" type="button">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Launcher for the QuickAI desktop client.
+#
+# Deliberately uses the system python3: the client is standard-library only, so
+# it starts fast and keeps working even if the service's virtualenv is rebuilt.
+set -euo pipefail
+
+SELF="${BASH_SOURCE[0]}"
+while [ -L "$SELF" ]; do
+  TARGET="$(readlink "$SELF")"
+  case "$TARGET" in
+    /*) SELF="$TARGET" ;;
+    *)  SELF="$(dirname "$SELF")/$TARGET" ;;
+  esac
+done
+REPO="$(cd "$(dirname "$SELF")/.." && pwd)"
+
+# Pick up QUICKAI_URL / QUICKAI_TOKEN if the service has them configured.
+if [ -f "$REPO/.env" ]; then
+  set -a
+  # shellcheck disable=SC1091
+  . "$REPO/.env"
+  set +a
+  if [ -z "${QUICKAI_URL:-}" ] && [ -n "${QUICKAI_PORT:-}" ]; then
+    export QUICKAI_URL="http://127.0.0.1:${QUICKAI_PORT}"
+  fi
+fi
+
+exec env PYTHONPATH="$REPO${PYTHONPATH:+:$PYTHONPATH}" python3 -m qa "$@"

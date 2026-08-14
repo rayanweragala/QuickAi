@@ -1,0 +1,26 @@
+[Unit]
+Description=QuickAI — one-click actions for an OpenAI-compatible LLM
+Documentation=file://__APP_DIR__/README.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=__APP_DIR__
+ExecStart=__APP_DIR__/.venv/bin/python -m app.main
+Environment=QUICKAI_HOST=__HOST__
+Environment=QUICKAI_PORT=__PORT__
+EnvironmentFile=-__APP_DIR__/.env
+Restart=on-failure
+RestartSec=3
+# Hardening: it only needs to read the repo and write its config directory.
+# If you point QUICKAI_CONFIG somewhere else, add that path to ReadWritePaths
+# below (or drop the four Protect*/ReadWritePaths lines).
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=__CONFIG_DIR__
+
+[Install]
+WantedBy=default.target
