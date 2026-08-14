@@ -48,7 +48,9 @@ class FrontendSecurityContractTest(unittest.TestCase):
 
         self.assertIn("dompurify@3.4.13", html)
         self.assertIn("marked@18.0.9", html)
+        self.assertIn("katex@0.18.0", html)
         self.assertIn("DOMPurify.sanitize(marked.parse(text))", javascript)
+        self.assertIn("renderMathInElement(el.output", javascript)
         self.assertNotRegex(javascript, r"innerHTML\s*=\s*marked\.parse")
 
 

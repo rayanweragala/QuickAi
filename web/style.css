@@ -404,6 +404,7 @@ textarea:focus-visible {
 .editorHint span:first-child { color: var(--fg-2); font-weight: 700; }
 
 .output { color: var(--fg); }
+.output .katex-display { overflow-x: auto; overflow-y: hidden; }
 .output:empty::before {
   content: "The result appears here.";
   color: var(--fg-3);

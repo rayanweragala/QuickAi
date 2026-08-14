@@ -100,6 +100,18 @@
       return;
     }
     el.output.innerHTML = DOMPurify.sanitize(marked.parse(text));
+    if (window.renderMathInElement) {
+      renderMathInElement(el.output, {
+        delimiters: [
+          { left: "$$", right: "$$", display: true },
+          { left: "$", right: "$", display: false },
+          { left: "\\(", right: "\\)", display: false },
+          { left: "\\[", right: "\\]", display: true },
+        ],
+        throwOnError: false,
+        trust: false,
+      });
+    }
   }
 
   const setTheme = (theme) => {
